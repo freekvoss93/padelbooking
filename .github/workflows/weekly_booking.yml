@@ -1,0 +1,83 @@
+name: Peakz Padel — Weekly Booking
+
+# -----------------------------------------------------------------------
+# Schedule: every Tuesday 05:00 UTC
+#   Winter (CET  = UTC+1): 05:00 UTC = 06:00 Amsterdam  ← exact
+#   Summer (CEST = UTC+2): 05:00 UTC = 07:00 Amsterdam  ← 1 h late (fine)
+# -----------------------------------------------------------------------
+
+on:
+  schedule:
+    - cron: '0 5 * * 2'   # Every Tuesday 05:00 UTC
+
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (no actual booking or payment)'
+        required: false
+        default: 'true'
+        type: boolean
+      force_run_now:
+        description: 'Force run (bypass Tuesday-only guard)'
+        required: false
+        default: 'true'
+        type: boolean
+      booking_date_override:
+        description: 'Override booking target date (YYYY-MM-DD, optional)'
+        required: false
+        default: ''
+        type: string
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  book-court:
+    name: Book padel court
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run booking job
+        env:
+          # Credentials — set these in Settings > Secrets > Actions
+          PEAKZ_EMAIL:        ${{ secrets.PEAKZ_EMAIL }}
+          PEAKZ_PASSWORD:     ${{ secrets.PEAKZ_PASSWORD }}
+
+          # Notifications
+          SMTP_USER:          ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD:      ${{ secrets.SMTP_PASSWORD }}
+          SMTP_FROM:          ${{ secrets.SMTP_FROM }}
+          NOTIFICATION_TO:    ${{ secrets.NOTIFICATION_TO }}
+
+          # Backend (defaults are already correct for Nijmegen Westerpark)
+          USE_API: 'true'
+
+          # Run modes — override via workflow_dispatch inputs
+          DRY_RUN:               ${{ github.event.inputs.dry_run || 'false' }}
+          FORCE_RUN_NOW:         ${{ github.event.inputs.force_run_now || 'false' }}
+          BOOKING_DATE_OVERRIDE: ${{ github.event.inputs.booking_date_override || '' }}
+          TEST_MODE:             ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
+
+        run: python main.py run-now
+
+      - name: Upload failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-screenshots-${{ github.run_id }}
+          path: data/screenshots/
+          if-no-files-found: ignore
+          retention-days: 7
