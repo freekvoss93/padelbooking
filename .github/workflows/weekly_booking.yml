@@ -1,14 +1,14 @@
 name: Peakz Padel — Weekly Booking
 
 # -----------------------------------------------------------------------
-# Schedule: every Tuesday 05:00 UTC
-#   Winter (CET  = UTC+1): 05:00 UTC = 06:00 Amsterdam  ← exact
-#   Summer (CEST = UTC+2): 05:00 UTC = 07:00 Amsterdam  ← 1 h late (fine)
+# Schedule: every Tuesday 03:00 UTC
+#   Summer (CEST = UTC+2): 03:00 UTC = 05:00 Amsterdam → ~06:00 with GH delay
+#   Winter (CET  = UTC+1): 03:00 UTC = 04:00 Amsterdam → ~05:00 with GH delay
 # -----------------------------------------------------------------------
 
 on:
   schedule:
-    - cron: '0 5 * * 2'   # Every Tuesday 05:00 UTC
+    - cron: '0 3 * * 2'   # Every Tuesday 03:00 UTC
 
   workflow_dispatch:
     inputs:
